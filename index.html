@@ -1,0 +1,329 @@
+# wed-key-cho-shop1
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Quản Lý Key Đám Mây</title>
+  <style>
+    :root {
+      --bg: #0b1120; --card: #1e293b; --border: #334155;
+      --primary: #6366f1; --primary-hover: #4f46e5;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --text: #f8fafc; --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    header {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 15px 5%; display: flex; justify-content: space-between; align-items: center;
+    }
+    header h1 { margin: 0; font-size: 1.2rem; color: var(--primary); }
+    .container { max-width: 1200px; margin: 25px auto; padding: 0 20px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px; margin-bottom: 20px;
+    }
+    .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end; }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+    input, select {
+      width: 100%; padding: 10px; background: #0f172a;
+      border: 1px solid var(--border); border-radius: 6px; color: #fff;
+    }
+    .btn {
+      background: var(--primary); color: #fff; border: none; padding: 10px 16px;
+      border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success); }
+    .btn-danger { background: var(--danger); padding: 5px 10px; font-size: 0.8rem; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .stat-box { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 10px; }
+    .stat-box h2 { margin: 5px 0 0; font-size: 1.6rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { border-bottom: 1px solid var(--border); padding: 12px 10px; text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: bold; }
+    .bg-green { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .bg-yellow { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .bg-red { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .bg-blue { background: rgba(99, 102, 241, 0.15); color: var(--primary); }
+    .hidden { display: none !important; }
+    .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CLOUD KEY MANAGER</h1>
+  <span style="font-size: 0.85rem; color: var(--success);">● Đồng bộ trực tiếp với Web Shop</span>
+</header>
+
+<!-- Màn hình đăng nhập -->
+<div id="loginScreen" class="container" style="max-width: 400px; margin-top: 80px;">
+  <div class="card">
+    <h3 style="margin-top:0;">Đăng Nhập Quản Lý Key</h3>
+    <label>Mật khẩu quản trị:</label>
+    <input type="password" id="adminPass" placeholder="Nhập mật khẩu...">
+    <button class="btn" style="width: 100%; margin-top: 15px;" onclick="checkLogin()">Truy Cập Hệ Thống</button>
+  </div>
+</div>
+
+<!-- Màn hình quản lý chính -->
+<div id="mainApp" class="container hidden">
+  <!-- Thống kê nhanh -->
+  <div class="stats">
+    <div class="stat-box"><span style="color:var(--muted);font-size:0.85rem;">Tổng Số Key</span><h2 id="statTotal">0</h2></div>
+    <div class="stat-box"><span style="color:var(--muted);font-size:0.85rem;">Key Chưa Kích Hoạt</span><h2 id="statUnused" style="color:var(--success)">0</h2></div>
+    <div class="stat-box"><span style="color:var(--muted);font-size:0.85rem;">Key Ngày Đang Chạy</span><h2 id="statActive" style="color:var(--warning)">0</h2></div>
+    <div class="stat-box"><span style="color:var(--muted);font-size:0.85rem;">Đã Dùng / Hết Hạn</span><h2 id="statExpired" style="color:var(--danger)">0</h2></div>
+  </div>
+
+  <!-- Khu vực tạo Key mới -->
+  <div class="card">
+    <h3 style="margin-top:0;">Tạo Key Mới Lên Đám Mây</h3>
+    <div class="grid-form">
+      <div>
+        <label>Loại Key:</label>
+        <select id="keyType" onchange="toggleDaysInput()">
+          <option value="one_time">Key Dùng 1 Lần (1 File duy nhất)</option>
+          <option value="daily">Key Theo Ngày (Tính từ lúc kích hoạt)</option>
+        </select>
+      </div>
+      <div id="daysWrapper" class="hidden">
+        <label>Số ngày sử dụng:</label>
+        <input type="number" id="keyDays" value="1" min="1" max="3650">
+      </div>
+      <div>
+        <label>Số lượng tạo:</label>
+        <input type="number" id="keyQty" value="1" min="1" max="50">
+      </div>
+      <div>
+        <label>Tiền tố (Prefix) hoặc Mã tùy chỉnh:</label>
+        <input type="text" id="keyPrefix" value="VIP" placeholder="VD: VIP hoặc mã cụ thể">
+      </div>
+      <div>
+        <button class="btn btn-success" style="width: 100%;" onclick="createKeys()">+ Tạo & Lưu Đám Mây</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Danh sách Key -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+      <h3 style="margin:0;">Danh Sách Key Trên Đám Mây</h3>
+      <div class="filter-bar" style="margin:0;">
+        <input type="text" id="searchKey" placeholder="Tìm mã key..." style="width:200px; padding:7px;" onkeyup="renderTable()">
+        <select id="filterType" style="width:160px; padding:7px;" onchange="renderTable()">
+          <option value="all">Tất cả loại</option>
+          <option value="one_time">Key 1 Lần</option>
+          <option value="daily">Key Ngày</option>
+        </select>
+        <button class="btn btn-danger" onclick="deleteExpiredKeys()">Dọn Key Đã Dùng/Hết Hạn</button>
+      </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Mã Key</th>
+            <th>Loại Key</th>
+            <th>Trạng Thái</th>
+            <th>Gói File Đã Gắn</th>
+            <th>Hạn Sử Dụng / Thời Gian Dùng</th>
+            <th>Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody id="keyListBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+  // CẤU HÌNH FIREBASE DÙNG CHUNG CHO CẢ 2 WEB
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const ADMIN_PASS = "admin123"; // Đổi mật khẩu tại đây
+  let allKeys = {};
+
+  function checkLogin() {
+    if (document.getElementById('adminPass').value === ADMIN_PASS) {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('hidden');
+      listenKeys();
+    } else {
+      alert("Mật khẩu không chính xác!");
+    }
+  }
+
+  function toggleDaysInput() {
+    const isDaily = document.getElementById('keyType').value === 'daily';
+    document.getElementById('daysWrapper').classList.toggle('hidden', !isDaily);
+  }
+
+  function randomStr(len) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let res = '';
+    for (let i = 0; i < len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+    return res;
+  }
+
+  // Tạo Key mới đẩy lên Firebase
+  async function createKeys() {
+    const type = document.getElementById('keyType').value;
+    const days = parseInt(document.getElementById('keyDays').value) || 1;
+    const qty = parseInt(document.getElementById('keyQty').value) || 1;
+    const prefix = document.getElementById('keyPrefix').value.trim().toUpperCase() || 'KEY';
+
+    const updates = {};
+    const generatedList = [];
+
+    for (let i = 0; i < qty; i++) {
+      // Nếu tạo 1 key và prefix dài >= 6 ký tự không có khoảng trắng thì dùng làm mã tùy chỉnh
+      const code = (qty === 1 && prefix.length >= 8) 
+        ? prefix 
+        : `${prefix}-${randomStr(4)}-${randomStr(4)}`;
+
+      updates['keys/' + code] = {
+        type: type,
+        durationDays: type === 'daily' ? days : 0,
+        used: false,
+        activatedAt: null,
+        expiresAt: null,
+        boundProductId: null,
+        boundProductName: null,
+        createdAt: Date.now()
+      };
+      generatedList.push(code);
+    }
+
+    await db.ref().update(updates);
+    navigator.clipboard?.writeText(generatedList.join('\n'));
+    alert(`Đã tạo thành công ${qty} key và tự động copy vào bộ nhớ tạm!`);
+  }
+
+  function listenKeys() {
+    db.ref('keys').on('value', (snap) => {
+      allKeys = snap.val() || {};
+      renderTable();
+    });
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('keyListBody');
+    const search = document.getElementById('searchKey').value.trim().toUpperCase();
+    const filterType = document.getElementById('filterType').value;
+    const now = Date.now();
+
+    let total = 0, unused = 0, active = 0, expired = 0;
+    tbody.innerHTML = '';
+
+    const entries = Object.entries(allKeys).sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+
+    entries.forEach(([code, k]) => {
+      total++;
+      let statusBadge = '';
+      let timeInfo = '-';
+      let isDead = false;
+
+      if (k.type === 'one_time') {
+        if (k.used) {
+          expired++;
+          isDead = true;
+          statusBadge = '<span class="badge bg-red">Đã Dùng (1 Lần)</span>';
+          timeInfo = k.activatedAt ? new Date(k.activatedAt).toLocaleString('vi-VN') : 'Đã sử dụng';
+        } else {
+          unused++;
+          statusBadge = '<span class="badge bg-green">Sẵn Sàng</span>';
+          timeInfo = 'Chưa kích hoạt';
+        }
+      } else {
+        // Key theo ngày
+        if (!k.activatedAt) {
+          unused++;
+          statusBadge = '<span class="badge bg-green">Chưa Kích Hoạt</span>';
+          timeInfo = `Gói ${k.durationDays} ngày (Chờ nhập)`;
+        } else if (now < k.expiresAt) {
+          active++;
+          const remainHours = Math.ceil((k.expiresAt - now) / (1000 * 60 * 60));
+          statusBadge = `<span class="badge bg-yellow">Đang Chạy (Còn ${remainHours}h)</span>`;
+          timeInfo = 'Hết hạn: ' + new Date(k.expiresAt).toLocaleString('vi-VN');
+        } else {
+          expired++;
+          isDead = true;
+          statusBadge = '<span class="badge bg-red">Đã Hết Hạn</span>';
+          timeInfo = 'Hết lúc: ' + new Date(k.expiresAt).toLocaleString('vi-VN');
+        }
+      }
+
+      // Lọc hiển thị
+      if (search && !code.includes(search)) return;
+      if (filterType !== 'all' && k.type !== filterType) return;
+
+      const typeLabel = k.type === 'one_time' 
+        ? '<span class="badge bg-blue">1 Lần</span>' 
+        : `<span class="badge bg-blue">${k.durationDays} Ngày</span>`;
+
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${code}</strong></td>
+          <td>${typeLabel}</td>
+          <td>${statusBadge}</td>
+          <td>${k.boundProductName || '-'}</td>
+          <td style="font-size:0.85rem; color:var(--muted)">${timeInfo}</td>
+          <td>
+            <button class="btn btn-outline" style="padding:4px 8px; font-size:0.8rem;" onclick="copyKey('${code}')">Copy</button>
+            <button class="btn btn-danger" onclick="deleteKey('${code}')">Xóa</button>
+          </td>
+        </tr>
+      `;
+    });
+
+    document.getElementById('statTotal').innerText = total;
+    document.getElementById('statUnused').innerText = unused;
+    document.getElementById('statActive').innerText = active;
+    document.getElementById('statExpired').innerText = expired;
+  }
+
+  function copyKey(code) {
+    navigator.clipboard.writeText(code);
+    alert("Đã copy: " + code);
+  }
+
+  function deleteKey(code) {
+    if (confirm(`Xóa vĩnh viễn key ${code}?`)) {
+      db.ref('keys/' + code).remove();
+    }
+  }
+
+  function deleteExpiredKeys() {
+    if (!confirm("Xóa toàn bộ Key 1 lần đã dùng và Key ngày đã hết hạn?")) return;
+    const now = Date.now();
+    const updates = {};
+    Object.entries(allKeys).forEach(([code, k]) => {
+      if ((k.type === 'one_time' && k.used) || (k.type === 'daily' && k.expiresAt && now >= k.expiresAt)) {
+        updates['keys/' + code] = null;
+      }
+    });
+    db.ref().update(updates);
+  }
+</script>
+</body>
+</html>
